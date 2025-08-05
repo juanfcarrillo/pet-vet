@@ -1,6 +1,14 @@
 
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import type { RegisterData, ResetPasswordData, User } from '../types/auth';
+import type { 
+  Appointment, 
+  CreateAppointmentData, 
+  UpdateAppointmentData, 
+  AppointmentFilters, 
+  AppointmentsResponse,
+  ConfirmAppointmentData 
+} from '../types/appointment';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -116,24 +124,48 @@ class ApiService {
   }
 
   // Appointments endpoints
-  async getAppointments(params?: Record<string, unknown>) {
-    return this.get('/appointments', params);
+  async getAppointments(filters?: AppointmentFilters): Promise<AppointmentsResponse> {
+    const response = await this.api.get('/appointments', { params: filters });
+    return response.data.data; // Extract data from ApiResponse wrapper
   }
 
-  async createAppointment(data: Record<string, unknown>) {
-    return this.post('/appointments', data);
+  async getAppointmentById(id: string): Promise<Appointment> {
+    const response = await this.api.get(`/appointments/${id}`);
+    return response.data.data; // Extract data from ApiResponse wrapper
   }
 
-  async updateAppointment(id: string, data: Record<string, unknown>) {
-    return this.put(`/appointments/${id}`, data);
+  async getClientAppointments(clientId: string, filters?: AppointmentFilters): Promise<AppointmentsResponse> {
+    const response = await this.api.get(`/appointments/client/${clientId}`, { params: filters });
+    return response.data.data; // Extract data from ApiResponse wrapper
   }
 
-  async deleteAppointment(id: string) {
-    return this.delete(`/appointments/${id}`);
+  async getVeterinarianAppointments(veterinarianId: string, filters?: AppointmentFilters): Promise<AppointmentsResponse> {
+    const response = await this.api.get(`/appointments/veterinarian/${veterinarianId}`, { params: filters });
+    return response.data.data; // Extract data from ApiResponse wrapper
   }
 
-  async getAvailableSlots(params: Record<string, unknown>) {
-    return this.get('/appointments/available-slots', params);
+  async createAppointment(data: CreateAppointmentData): Promise<Appointment> {
+    const response = await this.api.post('/appointments', data);
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async updateAppointment(id: string, data: UpdateAppointmentData): Promise<Appointment> {
+    const response = await this.api.put(`/appointments/${id}`, data);
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async deleteAppointment(id: string): Promise<void> {
+    await this.api.delete(`/appointments/${id}`);
+  }
+
+  async confirmAppointment(id: string, data?: ConfirmAppointmentData): Promise<Appointment> {
+    const response = await this.api.post(`/appointments/${id}/confirm`, data || {});
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async getAvailableTimeSlots(veterinarianId: string, date: string): Promise<string[]> {
+    const response = await this.api.get(`/appointments/available-slots/${veterinarianId}/${date}`);
+    return response.data.data; // Extract data from ApiResponse wrapper
   }
 
   // Chat endpoints (REST API)
