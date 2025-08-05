@@ -3,6 +3,11 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { User } from '../entities/user.entity';
+import { Repository } from 'typeorm';
+import { CreateUserDto, LoginDto, UserRole } from '@pet-vet/types';
+import { PasswordUtil } from '@pet-vet/common';
+import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ResetPasswordDto } from 'src/dto/auth.dto';
 
 describe('AuthService', () => {
   let service: AuthService;

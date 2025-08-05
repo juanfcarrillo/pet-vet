@@ -1,9 +1,9 @@
 import { 
-  Controller, 
-  Post, 
-  Body, 
-  Get, 
-  UseGuards, 
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
   Req,
   HttpStatus,
   HttpCode,
@@ -22,7 +22,9 @@ import {
 import { ResponseUtil } from '@pet-vet/common';
 import { AuthResponse, ApiResponse } from '@pet-vet/types';
 import { User } from '../entities/user.entity';
+import { ApiTags, ApiOperation, ApiResponse as SwaggerApiResponse, ApiBody } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class AuthController {
@@ -34,6 +36,10 @@ export class AuthController {
    */
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register a new user' })
+  @SwaggerApiResponse({ status: 201, description: 'User successfully registered.' })
+  @SwaggerApiResponse({ status: 400, description: 'Invalid input data.' })
+  @ApiBody({ type: CreateUserDto })
   async register(@Body() createUserDto: CreateUserDto): Promise<ApiResponse<AuthResponse>> {
     try {
       const result = await this.authService.register(createUserDto);

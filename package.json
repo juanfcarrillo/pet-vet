@@ -36,8 +36,9 @@
     "setup:frontend": "cd apps/frontend && npm install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
     "@types/node": "^20.0.0",
+    "concurrently": "^8.2.2",
+    "eslint-config-standard": "^17.1.0",
     "typescript": "^5.0.0"
   },
   "engines": {
@@ -53,5 +54,9 @@
     "typescript"
   ],
   "author": "Pet-Vet Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@nestjs/swagger": "^11.2.0",
+    "swagger-ui-express": "^5.0.1"
+  }
 }
