@@ -1,0 +1,57 @@
+{
+  "name": "pet-vet-microservices",
+  "version": "1.0.0",
+  "description": "Sistema de veterinaria con arquitectura de microservicios",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:gateway\" \"npm run dev:auth\" \"npm run dev:appointments\" \"npm run dev:chat\" \"npm run dev:frontend\"",
+    "dev:gateway": "cd apps/gateway && npm run start:dev",
+    "dev:auth": "cd apps/auth-service && npm run start:dev",
+    "dev:appointments": "cd apps/appointment-service && npm run start:dev",
+    "dev:chat": "cd apps/chat-service && npm run start:dev",
+    "dev:frontend": "cd apps/frontend && npm run dev",
+    "build": "npm run build:gateway && npm run build:auth && npm run build:appointments && npm run build:chat && npm run build:frontend",
+    "build:gateway": "cd apps/gateway && npm run build",
+    "build:auth": "cd apps/auth-service && npm run build",
+    "build:appointments": "cd apps/appointment-service && npm run build",
+    "build:chat": "cd apps/chat-service && npm run build",
+    "build:frontend": "cd apps/frontend && npm run build",
+    "test": "npm run test:gateway && npm run test:auth && npm run test:appointments && npm run test:chat",
+    "test:gateway": "cd apps/gateway && npm run test",
+    "test:auth": "cd apps/auth-service && npm run test",
+    "test:appointments": "cd apps/appointment-service && npm run test",
+    "test:chat": "cd apps/chat-service && npm run test",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "setup": "npm install && npm run setup:services && npm run setup:frontend",
+    "setup:services": "npm run setup:gateway && npm run setup:auth && npm run setup:appointments && npm run setup:chat",
+    "setup:gateway": "cd apps/gateway && npm install",
+    "setup:auth": "cd apps/auth-service && npm install",
+    "setup:appointments": "cd apps/appointment-service && npm install",
+    "setup:chat": "cd apps/chat-service && npm install",
+    "setup:frontend": "cd apps/frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "microservices",
+    "nestjs",
+    "react",
+    "veterinary",
+    "pets",
+    "typescript"
+  ],
+  "author": "Pet-Vet Team",
+  "license": "MIT"
+}

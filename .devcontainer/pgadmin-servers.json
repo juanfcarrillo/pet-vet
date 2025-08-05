@@ -1,0 +1,34 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Auth Database",
+      "Group": "Pet-Vet Microservices",
+      "Host": "auth-db",
+      "Port": 5432,
+      "MaintenanceDB": "auth_db",
+      "Username": "postgres",
+      "PassFile": "/tmp/pgpassfile",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Appointment Database", 
+      "Group": "Pet-Vet Microservices",
+      "Host": "appointment-db",
+      "Port": 5432,
+      "MaintenanceDB": "appointment_db",
+      "Username": "postgres",
+      "PassFile": "/tmp/pgpassfile",
+      "SSLMode": "prefer"
+    },
+    "3": {
+      "Name": "Chat Database",
+      "Group": "Pet-Vet Microservices", 
+      "Host": "chat-db",
+      "Port": 5432,
+      "MaintenanceDB": "chat_db",
+      "Username": "postgres",
+      "PassFile": "/tmp/pgpassfile",
+      "SSLMode": "prefer"
+    }
+  }
+}

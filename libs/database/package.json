@@ -1,0 +1,20 @@
+{
+  "name": "@pet-vet/database",
+  "version": "1.0.0",
+  "description": "Configuración de base de datos para el sistema Pet-Vet",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@pet-vet/types": "^1.0.0",
+    "typeorm": "^0.3.17",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.10.2",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # DevContainer principal
+  devcontainer:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../..:/workspaces:cached
+    working_dir: /workspaces/pet-vet
+    command: sleep infinity
+    network_mode: service:db-services
+    depends_on:
+      - auth-db
+      - appointment-db
+      - chat-db
+      - redis
+
+  # Servicios de base de datos y auxiliares
+  db-services:
+    image: alpine:latest
+    command: sleep infinity
+    ports:
+      - "3000:3000"   # API Gateway
+      - "3001:3001"   # Auth Service
+      - "3002:3002"   # Appointment Service
+      - "3003:3003"   # Chat Service
+      - "5173:5173"   # Frontend
+      - "5432:5432"   # Auth DB
+      - "5433:5433"   # Appointment DB
+      - "5434:5434"   # Chat DB
+      - "6379:6379"   # Redis
+      - "8080:8080"   # PgAdmin
+
+  # Base de datos para Auth Service
+  auth-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Base de datos para Appointment Service
+  appointment-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: appointment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - appointment_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appointment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Base de datos para Chat Service
+  chat-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chat_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - chat_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chat_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis para caching y sessions
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # PgAdmin para administración de BD
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@petvet.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin-servers.json:/pgadmin4/servers.json
+    depends_on:
+      - auth-db
+      - appointment-db
+      - chat-db
+
+volumes:
+  auth_data:
+    driver: local
+  appointment_data:
+    driver: local
+  chat_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  default:
+    name: petvet-devcontainer-network
