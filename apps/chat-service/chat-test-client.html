@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet-Vet Chat Test Client</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .connection-status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 20px 0;
+            background-color: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .message.sent {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+        .message.received {
+            background-color: #fff3e0;
+            margin-right: 20%;
+        }
+        .message .meta {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .online-users {
+            background-color: #e8f5e8;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐾 Pet-Vet Chat Test Client</h1>
+        
+        <div id="connectionStatus" class="connection-status disconnected">
+            Disconnected
+        </div>
+
+        <div class="form-group">
+            <label for="userId">User ID (UUID):</label>
+            <input type="text" id="userId" placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000">
+        </div>
+
+        <div class="form-group">
+            <label for="userName">User Name:</label>
+            <input type="text" id="userName" placeholder="Your name">
+        </div>
+
+        <div class="form-group">
+            <label for="userRole">Role:</label>
+            <select id="userRole">
+                <option value="client">Client</option>
+                <option value="veterinarian">Veterinarian</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="conversationId">Conversation ID:</label>
+            <input type="text" id="conversationId" placeholder="e.g. conv-123">
+        </div>
+
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <button onclick="joinRoom()">Join Room</button>
+        <button onclick="leaveRoom()">Leave Room</button>
+
+        <div class="messages" id="messages">
+            <!-- Messages will appear here -->
+        </div>
+
+        <div class="form-group">
+            <label for="messageContent">Message:</label>
+            <textarea id="messageContent" rows="3" placeholder="Type your message here..." maxlength="500"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="recipientId">Recipient ID (UUID):</label>
+            <input type="text" id="recipientId" placeholder="Recipient user ID">
+        </div>
+
+        <button onclick="sendMessage()">Send Message</button>
+        <button onclick="markAsRead()">Mark as Read</button>
+
+        <div class="online-users">
+            <h3>Online Users:</h3>
+            <div id="onlineUsers">No users online</div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+            statusEl.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+        }
+
+        function addMessage(message, type = 'received') {
+            const messagesEl = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            messageEl.innerHTML = `
+                <div class="meta">${message.senderName || 'System'} - ${time}</div>
+                <div>${message.content || message.message || JSON.stringify(message)}</div>
+            `;
+            
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function connect() {
+            if (socket) {
+                socket.disconnect();
+            }
+
+            // Connect to the chat namespace
+            socket = io('http://localhost:3003/chat', {
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                console.log('Connected to chat server');
+                updateConnectionStatus(true);
+                addMessage({ message: 'Connected to chat server', senderName: 'System' });
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from chat server');
+                updateConnectionStatus(false);
+                addMessage({ message: 'Disconnected from chat server', senderName: 'System' });
+            });
+
+            socket.on('connected', (data) => {
+                console.log('Welcome message:', data);
+                addMessage(data);
+            });
+
+            socket.on('joinedRoom', (data) => {
+                console.log('Joined room:', data);
+                addMessage({ message: `Joined room: ${data.room}`, senderName: 'System' });
+            });
+
+            socket.on('receiveMessage', (data) => {
+                console.log('Received message:', data);
+                addMessage(data);
+            });
+
+            socket.on('userJoined', (data) => {
+                addMessage({ message: `${data.userName} joined the conversation`, senderName: 'System' });
+            });
+
+            socket.on('userLeft', (data) => {
+                addMessage({ message: `${data.userName} left the conversation`, senderName: 'System' });
+            });
+
+            socket.on('userTyping', (data) => {
+                if (data.isTyping) {
+                    addMessage({ message: `${data.userName} is typing...`, senderName: 'System' });
+                }
+            });
+
+            socket.on('messageSent', (data) => {
+                console.log('Message sent confirmation:', data);
+            });
+
+            socket.on('messageDelivered', (data) => {
+                console.log('Message delivered:', data);
+            });
+
+            socket.on('onlineUsers', (data) => {
+                const onlineUsersEl = document.getElementById('onlineUsers');
+                if (data.users.length > 0) {
+                    onlineUsersEl.innerHTML = data.users.map(user => 
+                        `<div>👤 ${user.userName} (${user.userId})</div>`
+                    ).join('');
+                } else {
+                    onlineUsersEl.textContent = 'No users online';
+                }
+            });
+
+            socket.on('error', (error) => {
+                console.error('Socket error:', error);
+                addMessage({ message: `Error: ${error.message}`, senderName: 'System' });
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function joinRoom() {
+            if (!socket || !isConnected) {
+                alert('Please connect first');
+                return;
+            }
+
+            const userId = document.getElementById('userId').value;
+            const userName = document.getElementById('userName').value;
+            const conversationId = document.getElementById('conversationId').value;
+
+            if (!userId || !userName || !conversationId) {
+                alert('Please fill in User ID, User Name, and Conversation ID');
+                return;
+            }
+
+            socket.emit('joinRoom', {
+                room: conversationId,
+                userId: userId,
+                userName: userName
+            });
+        }
+
+        function leaveRoom() {
+            if (!socket || !isConnected) {
+                alert('Please connect first');
+                return;
+            }
+
+            const userId = document.getElementById('userId').value;
+            const userName = document.getElementById('userName').value;
+            const conversationId = document.getElementById('conversationId').value;
+
+            socket.emit('leaveRoom', {
+                room: conversationId,
+                userId: userId,
+                userName: userName
+            });
+        }
+
+        function sendMessage() {
+            if (!socket || !isConnected) {
+                alert('Please connect first');
+                return;
+            }
+
+            const content = document.getElementById('messageContent').value;
+            const userId = document.getElementById('userId').value;
+            const userName = document.getElementById('userName').value;
+            const userRole = document.getElementById('userRole').value;
+            const conversationId = document.getElementById('conversationId').value;
+            const recipientId = document.getElementById('recipientId').value;
+
+            if (!content || !userId || !userName || !conversationId) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const messageData = {
+                senderId: userId,
+                senderName: userName,
+                senderRole: userRole,
+                recipientId: recipientId || null,
+                content: content,
+                conversationId: conversationId,
+                type: 'private'
+            };
+
+            socket.emit('sendMessage', messageData);
+
+            // Add to UI as sent message
+            addMessage({
+                content: content,
+                senderName: userName + ' (You)'
+            }, 'sent');
+
+            // Clear message input
+            document.getElementById('messageContent').value = '';
+        }
+
+        function markAsRead() {
+            if (!socket || !isConnected) {
+                alert('Please connect first');
+                return;
+            }
+
+            const userId = document.getElementById('userId').value;
+            const conversationId = document.getElementById('conversationId').value;
+
+            socket.emit('markAsRead', {
+                conversationId: conversationId,
+                userId: userId
+            });
+        }
+
+        // Generate a sample UUID for testing
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Set default values for testing
+        window.onload = function() {
+            document.getElementById('userId').value = generateUUID();
+            document.getElementById('userName').value = 'Test User';
+            document.getElementById('conversationId').value = 'test-conversation-1';
+            document.getElementById('recipientId').value = generateUUID();
+        };
+    </script>
+</body>
+</html>
