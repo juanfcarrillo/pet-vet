@@ -245,7 +245,7 @@ class ApiService {
 
   async updateMessageStatus(messageId: string, status: string): Promise<ChatMessage> {
     const response = await this.api.put(`/chat/messages/${messageId}/status`, { status });
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 
   async markConversationAsRead(conversationId: string, userId: string): Promise<void> {
@@ -254,26 +254,26 @@ class ApiService {
 
   async getUnreadMessageCount(userId: string): Promise<number> {
     const response = await this.api.get(`/chat/users/${userId}/unread-count`);
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 
   async searchMessages(userId: string, searchTerm: string, limit?: number): Promise<ChatMessage[]> {
     const response = await this.api.get(`/chat/users/${userId}/search`, { 
       params: { q: searchTerm, limit } 
     });
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 
   async createConversation(data: { otherUserId: string }): Promise<{ conversation: Conversation; otherUser: User }> {
     const response = await this.api.post('/chat/conversations', data);
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 
   async searchUsersByEmail(email: string): Promise<User[]> {
     const response = await this.api.get('/auth/users/search', {
       params: { email },
     });
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 }
 
