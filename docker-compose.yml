@@ -12,20 +12,6 @@ services:
     networks:
       - default
 
-  # NGINX como balanceador de carga
-  nginx:
-    image: nginx:latest
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - auth-service
-      - chat-service
-      - appointment-service
-    networks:
-      - default
-
   # Microservices
   auth-service:
     build:
