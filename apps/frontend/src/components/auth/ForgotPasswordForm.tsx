@@ -12,7 +12,7 @@ import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Heart, ArrowLeft, CheckCircle } from 'lucide-react';
 
 
-// Componente funcional principal
+// Componente funcional principal para recuperación de contraseña
 export const ForgotPasswordForm: React.FC = () => {
    // Control del paso actual: email → security → success
   const [step, setStep] = useState<'email' | 'security' | 'success'>('email');
@@ -31,11 +31,12 @@ export const ForgotPasswordForm: React.FC = () => {
     e.preventDefault();
     setError('');
     
-    // In a real app, you would verify the email first
-    // For now, we'll move to the security question step
+    // En una app real aquí se debería verificar si el email existe
+    // Por simplicidad, se pasa directamente al siguiente paso
     setStep('security');
   };
-
+   
+   // Maneja el envío del formulario de restablecimiento
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
