@@ -178,7 +178,7 @@ class ChatSocketService {
     this.socket.emit('createConversation', data);
   }
 
-  // Event listeners
+  // Event listeners.
   on(event: string, callback: (data: unknown) => void) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
