@@ -1,25 +1,25 @@
-FROM node:24-alpine as GATEWAY
+FROM node:24 as GATEWAY
 WORKDIR /app
 COPY . .
 RUN npm ci --no-optional
 RUN npm run build
 CMD ["npm", "run", "start:gateway"]
 
-FROM node:24-alpine as AUTH
+FROM node:24 as AUTH
 WORKDIR /app
 COPY . .
 RUN npm ci --no-optional
 RUN npm run build
 CMD ["npm", "run", "start:auth"]
 
-FROM node:24-alpine as APPOINTMENTS
+FROM node:24 as APPOINTMENTS
 WORKDIR /app
 COPY . .
 RUN npm ci --no-optional
 RUN npm run build
 CMD ["npm", "run", "start:appointments"]
 
-FROM node:24-alpine as CHAT
+FROM node:24 as CHAT
 WORKDIR /app
 COPY . .
 RUN npm ci --no-optional
