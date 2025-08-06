@@ -16,7 +16,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isOwn,
   onEdit,
   onDelete,
-  onStatusUpdate,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);

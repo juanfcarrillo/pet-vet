@@ -13,6 +13,8 @@ interface AppointmentFormProps {
   onCancel?: () => void;
 }
 
+const defaultSlots = ['8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM', '6:00 PM'];
+
 export const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, onCancel }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState<AppointmentFormData>({
@@ -50,7 +52,7 @@ export const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, onCa
         formData.veterinarianId,
         formData.appointmentDate
       );
-      setAvailableSlots(slots);
+      setAvailableSlots(slots.length <= 0 ? slots : defaultSlots);
     } catch (error) {
       console.error('Error fetching available slots:', error);
       setAvailableSlots([]);
@@ -234,10 +236,10 @@ export const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, onCa
                 onChange={(e) => handleInputChange('appointmentTime', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
-                disabled={!formData.appointmentDate || !formData.veterinarianId}
+                // disabled={!formData.appointmentDate || !formData.veterinarianId}
               >
                 <option value="">Selecciona hora</option>
-                {availableSlots.map(slot => (
+                {defaultSlots.map(slot => (
                   <option key={slot} value={slot}>{slot}</option>
                 ))}
               </select>

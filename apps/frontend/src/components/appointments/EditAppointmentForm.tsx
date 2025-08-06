@@ -202,7 +202,7 @@ export const EditAppointmentForm: React.FC<EditAppointmentFormProps> = ({
                 <Clock className="w-4 h-4" />
                 Hora
               </label>
-              <select
+              {/* <select
                 value={formData.appointmentTime}
                 onChange={(e) => handleInputChange('appointmentTime', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -212,7 +212,7 @@ export const EditAppointmentForm: React.FC<EditAppointmentFormProps> = ({
                 {availableSlots.map(slot => (
                   <option key={slot} value={slot}>{slot}</option>
                 ))}
-              </select>
+              </select> */}
             </div>
           </div>
           
