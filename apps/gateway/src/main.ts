@@ -1,3 +1,4 @@
+// Importaciones principales de NestJS y módulos auxiliares
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -5,13 +6,14 @@ import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
 import Consul from 'consul';
 
-// Load environment variables
+// Carga las variables de entorno desde el archivo .env
 dotenv.config();
 
 async function bootstrap() {
+  // Crea una instancia de la aplicación NestJS con el módulo principal
   const app = await NestFactory.create(AppModule);
 
-  // Configure global validation
+  // Configura validaciones globales para todos los controladores y DTOs
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -23,7 +25,7 @@ async function bootstrap() {
     }),
   );
 
-  // Configurar CORS
+  // Habilita CORS para permitir el acceso desde el frontend
   app.enableCors({
     origin:
       process.env.NODE_ENV === 'production'
@@ -34,10 +36,10 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
-  // Configure global prefix for routes
+  // Define un prefijo global para todas las rutas (por ejemplo: /api/...)
   app.setGlobalPrefix('api');
 
-  // Configure Swagger
+  // Configura Swagger para la documentación automática de la API
   const config = new DocumentBuilder()
     .setTitle('Pet-Vet API Gateway')
     .setDescription('API Gateway for Pet-Vet microservices platform. Routes requests to Auth, Appointments, and Chat services.')
@@ -45,20 +47,24 @@ async function bootstrap() {
     .addBearerAuth()
     .addServer('http://localhost:3000', 'Development Server')
     .build();
+  // Genera y expone la documentación Swagger en /api/docs
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  // Obtiene el puerto del gateway desde variables de entorno o usa 3000 por defecto
   const port = parseInt(process.env.GATEWAY_PORT || '3000', 10);
   await app.listen(port);
 
   console.log(`🚀 Gateway service running on port ${port}`);
 
-  // Register with Consul
+  // Registro del servicio en Consul para descubrimiento de microservicios
   const consul = new Consul({
     host: process.env.CONSUL_HOST || 'localhost',
     port: parseInt(process.env.CONSUL_PORT || '8500', 10),
   });
   const serviceId = `gateway-service-${port}`;
+
+  // Registra este servicio en Consul con un chequeo de salud (endpoint /api/health)
   consul.agent.service.register({
     id: serviceId,
     name: 'gateway-service',
@@ -76,6 +82,7 @@ async function bootstrap() {
     console.error('Failed to register with Consul:', err);
   });
 
+  // Logs informativos que muestran el estado del API Gateway y microservicios
   console.log(`🚀 API Gateway running on port ${port}`);
   console.log(`📋 Swagger docs available at: http://localhost:${port}/api/docs`);
   console.log(`🔧 Health check available at: http://localhost:${port}/api/health`);
@@ -87,4 +94,5 @@ async function bootstrap() {
   console.log(`   Chat WebSocket: ws://localhost:3003/chat`);
 }
 
+// Ejecuta la función principal para arrancar la aplicación
 bootstrap();

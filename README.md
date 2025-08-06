@@ -2,6 +2,24 @@
 
 Sistema de gestión veterinaria desarrollado con arquitectura de microservicios usando NestJS y React.
 
+## 📚 Tabla de Contenidos
+
+- [Arquitectura](#-arquitectura)
+- [Tecnologías](#-tecnologías)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Inicio Rápido](#-inicio-rápido)
+- [Bases de Datos](#-bases-de-datos)
+- [Testing](#-testing)
+- [Build](#-build)
+- [Requerimientos Funcionales](#-requerimientos-funcionales)
+- [Desarrollo con DevContainers](#-desarrollo-con-devcontainers)
+- [Monitoreo](#-monitoreo)
+- [Despliegue](#-despliegue)
+- [Contribución](#-contribución)
+- [Scripts Disponibles](#-scripts-disponibles)
+- [Soporte](#-soporte)
+- [Licencia](#-licencia)
+
 ## 🏗️ Arquitectura
 
 Este proyecto implementa una arquitectura de microservicios que incluye:
