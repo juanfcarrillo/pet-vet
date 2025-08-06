@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../entities/user.entity';
 import { CreateUserDto, LoginDto, ResetPasswordDto, VerifySecurityQuestionDto } from '../dto/auth.dto';
@@ -225,5 +225,24 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  /**
+   * Buscar usuarios por email
+   */
+  async searchUsersByEmail(email: string): Promise<Partial<User>[]> {
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+
+    const users = await this.userRepository.find({
+      where: { email: Like(`%${email}%`) },
+    });
+
+    if (!users.length) {
+      throw new NotFoundException('No users found with the provided email');
+    }
+
+    return users.map(({ password, securityAnswer, ...user }) => user);
   }
 }

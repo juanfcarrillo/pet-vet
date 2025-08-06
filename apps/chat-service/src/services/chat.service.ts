@@ -9,12 +9,16 @@ import {
   MessageFilterDto
 } from '../dto/chat.dto';
 import { ChatMessage, MessageStatus } from '../entities/chat.entity';
+import { User } from '@pet-vet/types';
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class ChatService {
   constructor(
     @InjectRepository(ChatMessage)
     private readonly chatRepository: Repository<ChatMessage>,
+    private readonly httpService: HttpService,
   ) {}
 
   /**
@@ -259,10 +263,68 @@ export class ChatService {
   }
 
   /**
+   * Search users by email
+   */
+  async searchUsersByEmail(email: string): Promise<User[]> {
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+
+    try {
+      const response = await lastValueFrom(
+        this.httpService.get(`${process.env.AUTH_SERVICE_URL}/api/auth/users/search`, {
+          params: { email },
+        })
+      );
+
+      if (!response.data || !response.data.length) {
+        throw new NotFoundException('No users found with the provided email');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users from auth-service:', error);
+      throw new NotFoundException('Unable to fetch users at this time');
+    }
+  }
+
+  /**
    * Get single message by ID
    */
   async getMessageById(messageId: string): Promise<ChatMessage> {
     return await this.findMessageById(messageId);
+  }
+
+  /**
+   * Create a new conversation
+   */
+  async createConversation(data: { otherUserId: string; userId: string, senderName: string, senderRole: string }): Promise<any> {
+    const { otherUserId, userId, senderName, senderRole } = data;
+
+    // Check if a conversation already exists between the two users
+    const existingConversation = await this.chatRepository.findOne({
+      where: [
+        { senderId: userId, recipientId: otherUserId },
+        { senderId: otherUserId, recipientId: userId },
+      ],
+    });
+
+    if (existingConversation) {
+      return existingConversation;
+    }
+
+    // Create a new conversation
+    const newConversation = this.chatRepository.create({
+      senderId: userId,
+      recipientId: otherUserId,
+      createdAt: new Date(),
+      senderName,
+      senderRole,
+      content: '👋 Hola! ¿Cómo estás?',
+      conversationId: String(new Date().getTime()),
+    });
+
+    return await this.chatRepository.save(newConversation);
   }
 
   /**

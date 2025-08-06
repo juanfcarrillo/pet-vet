@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatRoom } from './ChatRoom';
+import { NewChatModal } from './NewChatModal';
 import type { Conversation } from '../../types/chat';
 import type { User } from '../../types/auth';
+import { apiService } from '../../services/api';
 
 interface ChatViewProps {
   currentUser: User;
@@ -11,6 +13,7 @@ interface ChatViewProps {
 export const ChatView: React.FC<ChatViewProps> = ({ currentUser }) => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [selectedOtherUser, setSelectedOtherUser] = useState<User | null>(null);
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
 
   const handleConversationSelect = (conversation: Conversation, otherUser: User) => {
     setSelectedConversation(conversation);
@@ -20,6 +23,25 @@ export const ChatView: React.FC<ChatViewProps> = ({ currentUser }) => {
   const handleCloseChat = () => {
     setSelectedConversation(null);
     setSelectedOtherUser(null);
+  };
+
+  const handleNewChat = () => {
+    setIsNewChatModalOpen(true);
+  };
+
+  const handleNewChatCreated = async (otherUserId: string) => {
+    try {
+      // Simulate API call to create or fetch a conversation
+      const response = await apiService.createConversation({ otherUserId });
+      const { conversation, otherUser } = response;
+
+      setSelectedConversation(conversation);
+      setSelectedOtherUser(otherUser);
+    } catch (error) {
+      console.error('Error creating new chat:', error);
+    } finally {
+      setIsNewChatModalOpen(false);
+    }
   };
 
   return (
@@ -35,6 +57,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ currentUser }) => {
             currentUser={currentUser}
             selectedConversationId={selectedConversation?.conversationId}
             onConversationSelect={handleConversationSelect}
+            onNewChat={handleNewChat}
           />
         </div>
 
@@ -76,6 +99,14 @@ export const ChatView: React.FC<ChatViewProps> = ({ currentUser }) => {
           )}
         </div>
       </div>
+
+      {/* New Chat Modal */}
+      <NewChatModal
+        isOpen={isNewChatModalOpen}
+        onClose={() => setIsNewChatModalOpen(false)}
+        onChatCreated={handleNewChatCreated}
+        currentUser={currentUser}
+      />
     </div>
   );
 };

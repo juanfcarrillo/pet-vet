@@ -1,5 +1,4 @@
 import { io, Socket } from 'socket.io-client';
-import type { SocketEvents, ChatMessage, OnlineUser, TypingUser } from '../types/chat';
 
 class ChatSocketService {
   private socket: Socket | null = null;
@@ -51,6 +50,8 @@ class ChatSocketService {
     this.socket.on('conversationRead', (data) => this.emit('conversationRead', data));
     this.socket.on('onlineUsers', (data) => this.emit('onlineUsers', data));
     this.socket.on('error', (data) => this.emit('error', data));
+    this.socket.on('createConversation', (data) => this.emit('createConversation', data));
+    this.socket.on('conversationCreated', (data) => this.emit('conversationCreated', data));
   }
 
   // Connection management
@@ -169,15 +170,23 @@ class ChatSocketService {
     this.socket.emit('getOnlineUsers', { conversationId });
   }
 
+  createConversation(data: { otherUserId: string; userId: string, senderName: string, senderRole: string }) {
+    if (!this.socket || !this.isConnected) {
+      throw new Error('Socket not connected');
+    }
+
+    this.socket.emit('createConversation', data);
+  }
+
   // Event listeners
-  on(event: string, callback: Function) {
+  on(event: string, callback: (data: unknown) => void) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
     this.listeners.get(event)?.push(callback);
   }
 
-  off(event: string, callback?: Function) {
+  off(event: string, callback?: (data: unknown) => void) {
     if (!callback) {
       this.listeners.delete(event);
       return;
@@ -192,7 +201,7 @@ class ChatSocketService {
     }
   }
 
-  private emit(event: string, data: any) {
+  emit(event: string, data: unknown) {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       eventListeners.forEach(callback => callback(data));

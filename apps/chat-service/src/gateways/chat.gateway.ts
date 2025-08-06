@@ -376,4 +376,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       timestamp: new Date().toISOString(),
     });
   }
+
+  /**
+   * Handle creating a new conversation
+   */
+  @SubscribeMessage('createConversation')
+  async handleCreateConversation(
+    @MessageBody() data: { otherUserId: string; userId: string, senderName: string, senderRole: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const { otherUserId, userId, senderName, senderRole } = data;
+      const conversation = await this.chatService.createConversation({ otherUserId, userId, senderName, senderRole });
+
+      // Notify the client about the created conversation
+      client.emit('conversationCreated', {
+        success: true,
+        conversation,
+      });
+
+      // Optionally, notify the other user about the new conversation
+      const otherUserSocket = this.connectedUsers.get(otherUserId)?.socketId;
+      if (otherUserSocket) {
+        this.server.to(otherUserSocket).emit('newConversation', {
+          conversation,
+        });
+      }
+    } catch (error) {
+      this.logger.error('Error creating conversation:', error);
+      client.emit('error', {
+        message: 'Failed to create conversation',
+        error: error.message,
+      });
+    }
+  }
 }

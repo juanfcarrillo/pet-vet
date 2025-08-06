@@ -1,16 +1,15 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { chatSocketService } from '../services/chatSocket';
+import React, { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { chatSocket } from '../services/chatSocket';
 import { apiService } from '../services/api';
 import { useAuth } from './AuthContext';
 import { 
-  ChatMessage, 
-  Conversation, 
-  OnlineUser, 
-  TypingUser,
-  CreateMessageData,
+  type ChatMessage, 
+  type Conversation, 
+  type OnlineUser, 
+  type TypingUser,
+  type CreateMessageData,
   MessageStatus
 } from '../types/chat';
-import { User } from '../types/user';
 import { ChatNotificationToast } from '../components/chat/ChatNotifications';
 
 interface ChatContextType {
@@ -48,6 +47,9 @@ interface ChatContextType {
   // Connection management
   connect: () => void;
   disconnect: () => void;
+
+  // Expose chatSocketService for direct WebSocket operations
+  getSocket: () => typeof chatSocket;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -130,7 +132,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       };
 
       await apiService.sendMessage(messageData);
-      chatSocketService.sendMessage(messageData);
+      chatSocket.sendMessage(messageData);
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;
@@ -141,7 +143,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const editMessage = useCallback(async (messageId: string, newContent: string) => {
     try {
       await apiService.editMessage(messageId, { content: newContent });
-      chatSocketService.editMessage(messageId, newContent);
+      chatSocket.editMessage(messageId, newContent);
     } catch (error) {
       console.error('Error editing message:', error);
       throw error;
@@ -165,7 +167,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     
     try {
       await apiService.updateMessageStatus(messageId, { status: 'read' });
-      chatSocketService.markMessageAsRead(messageId);
+      chatSocket.markMessageAsRead(messageId);
     } catch (error) {
       console.error('Error marking message as read:', error);
     }
@@ -193,21 +195,21 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   // Typing indicators
   const startTyping = useCallback((conversationId: string) => {
-    chatSocketService.startTyping(conversationId);
+    chatSocket.startTyping(conversationId);
   }, []);
 
   const stopTyping = useCallback((conversationId: string) => {
-    chatSocketService.stopTyping(conversationId);
+    chatSocket.stopTyping(conversationId);
   }, []);
 
   // Connection management
   const connect = useCallback(() => {
     if (!user) return;
-    chatSocketService.connect();
+    chatSocket.connect();
   }, [user]);
 
   const disconnect = useCallback(() => {
-    chatSocketService.disconnect();
+    chatSocket.disconnect();
   }, []);
 
   // Get sender name for notifications
@@ -326,28 +328,28 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     };
 
     // Subscribe to events
-    chatSocketService.on('connect', handleConnect);
-    chatSocketService.on('disconnect', handleDisconnect);
-    chatSocketService.on('newMessage', handleNewMessage);
-    chatSocketService.on('messageEdited', handleMessageEdited);
-    chatSocketService.on('messageStatusUpdate', handleMessageStatusUpdate);
-    chatSocketService.on('userTyping', handleUserTyping);
-    chatSocketService.on('userStoppedTyping', handleUserStoppedTyping);
-    chatSocketService.on('userOnline', handleUserOnline);
-    chatSocketService.on('userOffline', handleUserOffline);
-    chatSocketService.on('conversationRead', handleConversationRead);
+    chatSocket.on('connect', handleConnect);
+    chatSocket.on('disconnect', handleDisconnect);
+    chatSocket.on('newMessage', handleNewMessage);
+    chatSocket.on('messageEdited', handleMessageEdited);
+    chatSocket.on('messageStatusUpdate', handleMessageStatusUpdate);
+    chatSocket.on('userTyping', handleUserTyping);
+    chatSocket.on('userStoppedTyping', handleUserStoppedTyping);
+    chatSocket.on('userOnline', handleUserOnline);
+    chatSocket.on('userOffline', handleUserOffline);
+    chatSocket.on('conversationRead', handleConversationRead);
 
     return () => {
-      chatSocketService.off('connect', handleConnect);
-      chatSocketService.off('disconnect', handleDisconnect);
-      chatSocketService.off('newMessage', handleNewMessage);
-      chatSocketService.off('messageEdited', handleMessageEdited);
-      chatSocketService.off('messageStatusUpdate', handleMessageStatusUpdate);
-      chatSocketService.off('userTyping', handleUserTyping);
-      chatSocketService.off('userStoppedTyping', handleUserStoppedTyping);
-      chatSocketService.off('userOnline', handleUserOnline);
-      chatSocketService.off('userOffline', handleUserOffline);
-      chatSocketService.off('conversationRead', handleConversationRead);
+      chatSocket.off('connect', handleConnect);
+      chatSocket.off('disconnect', handleDisconnect);
+      chatSocket.off('newMessage', handleNewMessage);
+      chatSocket.off('messageEdited', handleMessageEdited);
+      chatSocket.off('messageStatusUpdate', handleMessageStatusUpdate);
+      chatSocket.off('userTyping', handleUserTyping);
+      chatSocket.off('userStoppedTyping', handleUserStoppedTyping);
+      chatSocket.off('userOnline', handleUserOnline);
+      chatSocket.off('userOffline', handleUserOffline);
+      chatSocket.off('conversationRead', handleConversationRead);
     };
   }, [user, activeConversation, markMessageAsRead, getSenderName]);
 
@@ -375,7 +377,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   useEffect(() => {
     if (activeConversation) {
       loadMessages(activeConversation.id);
-      chatSocketService.joinRoom(activeConversation.id);
+      chatSocket.joinRoom(activeConversation.id);
       
       // Mark as read when entering conversation
       if (activeConversation.unreadCount && activeConversation.unreadCount > 0) {
@@ -385,7 +387,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
     return () => {
       if (activeConversation) {
-        chatSocketService.leaveRoom(activeConversation.id);
+        chatSocket.leaveRoom(activeConversation.id);
       }
     };
   }, [activeConversation, loadMessages, markConversationAsRead]);
@@ -407,30 +409,34 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     removeNotificationToast(toastId);
   }, [conversations, removeNotificationToast]);
 
-  const value: ChatContextType = {
-    isConnected,
-    conversations,
-    activeConversation,
-    messages,
-    onlineUsers,
-    typingUsers,
-    totalUnreadCount,
-    sendMessage,
-    editMessage,
-    deleteMessage,
-    markMessageAsRead,
-    markConversationAsRead,
-    setActiveConversation,
-    loadConversations,
-    loadMessages,
-    startTyping,
-    stopTyping,
-    connect,
-    disconnect
-  };
+  // Expose chatSocketService for direct WebSocket operations
+  const getSocket = () => chatSocket;
 
   return (
-    <ChatContext.Provider value={value}>
+    <ChatContext.Provider
+      value={{
+        isConnected,
+        conversations,
+        activeConversation,
+        messages,
+        onlineUsers,
+        typingUsers,
+        totalUnreadCount,
+        sendMessage,
+        editMessage,
+        deleteMessage,
+        markMessageAsRead,
+        markConversationAsRead,
+        setActiveConversation,
+        loadConversations,
+        loadMessages,
+        startTyping,
+        stopTyping,
+        connect,
+        disconnect,
+        getSocket, // Add this to the context
+      }}
+    >
       {children}
       
       {/* Notification Toasts */}

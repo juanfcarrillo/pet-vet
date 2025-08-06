@@ -259,6 +259,25 @@ export class ChatGatewayController {
   }
 
   /**
+   * Search users by email
+   * GET /chat/users/search
+   */
+  @Get('users/search')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Search users by email' })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'No users found.' })
+  @ApiQuery({ name: 'email', description: 'Email to search for', type: 'string' })
+  searchUsersByEmail(
+    @Query('email') email: string,
+    @Headers('authorization') authorization: string,
+  ): Observable<any> {
+    const headers = authorization ? { authorization } : {};
+    const params = { email };
+    return this.httpService.get('auth', '/users/search', params, headers);
+  }
+
+  /**
    * Get message by ID
    * GET /chat/messages/:messageId
    */
@@ -330,5 +349,32 @@ export class ChatGatewayController {
       },
       message: 'WebSocket connection information'
     };
+  }
+
+  /**
+   * Create a new conversation
+   * POST /chat/conversations
+   */
+  @Post('conversations')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new conversation' })
+  @ApiResponse({ status: 201, description: 'Conversation created successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid input data.' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        otherUserId: { type: 'string', format: 'uuid', example: '123e4567-e89b-12d3-a456-426614174000' },
+      },
+      required: ['otherUserId'],
+    },
+  })
+  createConversation(
+    @Body() createConversationDto: any,
+    @Headers('authorization') authorization: string,
+  ): Observable<any> {
+    const headers = authorization ? { authorization } : {};
+    return this.httpService.post('chat', '/api/chat/conversations', createConversationDto, headers);
   }
 }

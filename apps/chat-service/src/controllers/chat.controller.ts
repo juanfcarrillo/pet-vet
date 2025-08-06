@@ -31,7 +31,7 @@ import {
   MessageFilterDto 
 } from '../dto/chat.dto';
 import { ResponseUtil } from '@pet-vet/common';
-import { ApiResponse as ApiResponseType } from '@pet-vet/types';
+import { ApiResponse as ApiResponseType, User } from '@pet-vet/types';
 
 @ApiTags('Chat')
 @Controller('chat')
@@ -290,6 +290,27 @@ export class ChatController {
       const result = await this.chatService.getMessageById(messageId);
       return ResponseUtil.success(result, 'Mensaje obtenido exitosamente');
     } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Search users by email
+   * GET /api/chat/users/search
+   */
+  @Get('search-users')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Search users by email' })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
+  @ApiQuery({ name: 'email', description: 'Email to search for', type: 'string' })
+  async searchUsersByEmail(
+    @Query('email') email: string
+  ): Promise<ApiResponseType<User[]>> {
+    try {
+      const users = await this.chatService.searchUsersByEmail(email);
+      return ResponseUtil.success(users, 'Users retrieved successfully');
+    } catch (error) {
+      console.error('Error searching users by email:', error);
       throw error;
     }
   }

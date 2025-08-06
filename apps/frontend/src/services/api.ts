@@ -1,4 +1,3 @@
-
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import type { RegisterData, ResetPasswordData, User } from '../types/auth';
 import type { 
@@ -18,6 +17,7 @@ import type {
   ConversationFilters,
   ConversationsResponse
 } from '../types/chat';
+import type { Conversation } from '../types/chat';
 
 
 // API Configuration
@@ -220,6 +220,18 @@ class ApiService {
   async searchMessages(userId: string, searchTerm: string, limit?: number): Promise<ChatMessage[]> {
     const response = await this.api.get(`/chat/users/${userId}/search`, { 
       params: { q: searchTerm, limit } 
+    });
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async createConversation(data: { otherUserId: string }): Promise<{ conversation: Conversation; otherUser: User }> {
+    const response = await this.api.post('/chat/conversations', data);
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async searchUsersByEmail(email: string): Promise<User[]> {
+    const response = await this.api.get('/auth/users/search', {
+      params: { email },
     });
     return response.data.data; // Extract data from ApiResponse wrapper
   }

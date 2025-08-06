@@ -171,4 +171,23 @@ export class AuthGatewayController {
   healthCheck(): Observable<any> {
     return this.httpService.get('auth', '/api/auth/health');
   }
+
+  /**
+   * Search users by email
+   * GET /auth/users/search
+   */
+  @Get('users/search')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Search users by email' })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'No users found.' })
+  @ApiParam({ name: 'email', description: 'Email to search for', type: 'string' })
+  searchUsersByEmail(
+    @Query('email') email: string,
+    @Headers('authorization') authorization: string,
+  ): Observable<any> {
+    const headers = authorization ? { authorization } : {};
+    const params = { email };
+    return this.httpService.get('auth', '/api/auth/users/search', params, headers);
+  }
 }

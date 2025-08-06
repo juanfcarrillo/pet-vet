@@ -8,7 +8,9 @@ import {
   HttpStatus,
   HttpCode,
   ValidationPipe,
-  UsePipes
+  UsePipes,
+  Query,
+  BadRequestException
 } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from '../services/auth.service';
@@ -157,5 +159,23 @@ export class AuthController {
       }, 
       'Auth service está funcionando correctamente'
     );
+  }
+
+  /**
+   * Search users by email
+   * GET /users/search
+   */
+  @Get('users/search')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Search users by email' })
+  @SwaggerApiResponse({ status: 200, description: 'Users retrieved successfully.' })
+  @SwaggerApiResponse({ status: 404, description: 'No users found.' })
+  async searchUsersByEmail(@Query('email') email: string): Promise<ApiResponse<Partial<User>[]>> {
+    if (!email) {
+      throw new BadRequestException('Email query parameter is required');
+    }
+
+    const users = await this.authService.searchUsersByEmail(email);
+    return ResponseUtil.success(users, 'Users retrieved successfully');
   }
 }

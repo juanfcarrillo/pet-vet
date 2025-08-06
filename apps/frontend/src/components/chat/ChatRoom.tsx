@@ -69,6 +69,9 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
         conversationId,
         content: newMessage.trim(),
         type: ConversationType.PRIVATE,
+        senderId: currentUser.id,
+        senderName: currentUser.fullName,
+        senderRole: currentUser.role,
       };
 
       // Send via API and WebSocket

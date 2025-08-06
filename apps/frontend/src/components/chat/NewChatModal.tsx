@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardHeader, CardContent } from '../ui/Card';
-import { UserRole, type User } from '../../types/auth';
+import { type User } from '../../types/auth';
+import { apiService } from '../../services/api';
+import { useChat } from '../../contexts/ChatContext';
 
 interface NewChatModalProps {
   isOpen: boolean;
@@ -21,57 +23,18 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-
-  // Search for users (this would need to be implemented in your API)
-  const searchUsers = async (term: string) => {
-    if (!term.trim()) {
-      setUsers([]);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      // Note: You'll need to implement this endpoint in your backend
-      // For now, we'll simulate it
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(term)}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Filter out current user
-        setUsers(data.filter((user: User) => user.id !== currentUser.id));
-      }
-    } catch (error) {
-      console.error('Error searching users:', error);
-      // For demo purposes, create mock users based on search
-      if (term.includes('@')) {
-        setUsers([
-          {
-            id: `mock-${Date.now()}`,
-            email: term,
-            fullName: term.split('@')[0],
-            role: UserRole.CLIENT,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            securityQuestion: '',
-            isActive: true
-          }
-        ]);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const lastSearchTerm = useRef('');
+  const { getSocket } = useChat(); // Access WebSocket instance
 
   // Create new conversation
   const handleCreateChat = async (otherUserId: string) => {
     try {
       setIsCreating(true);
-      onChatCreated(otherUserId);
-      onClose();
+
+      // Emit WebSocket event to create a conversation
+      const socket = getSocket();
+      socket.createConversation({ otherUserId, userId: currentUser.id, senderName: currentUser.fullName, senderRole: currentUser.role });
+
     } catch (error) {
       console.error('Error creating chat:', error);
     } finally {
@@ -79,10 +42,51 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    // Emit WebSocket event to create a conversation
+    const socket = getSocket();
+    socket.on('conversationCreated', (response: { success: boolean; error?: string }) => {
+      console.log('Conversation created:', response);
+      if (response.success) {
+        onChatCreated(response.conversation.otherParticipant);
+        onClose();
+      } else {
+        console.error('Error creating chat:', response.error);
+      }
+    });
+
+    return () => {
+      socket.off('conversationCreated');
+    };
+  }, [getSocket, onChatCreated, onClose]);
+
   // Debounced search
   useEffect(() => {
+    // Search for users (this would need to be implemented in your API)
+    const searchUsers = async (term: string) => {
+      if (!term.trim()) {
+        setUsers([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const data = await apiService.searchUsersByEmail(term);
+        // Filter out current user
+        setUsers(data);
+      } catch (error) {
+        console.error('Error searching users:', error);
+        setUsers([]); // Clear users on error to prevent UI issues
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const timer = setTimeout(() => {
-      searchUsers(searchTerm);
+      if (searchTerm && searchTerm !== lastSearchTerm.current) {
+        lastSearchTerm.current = searchTerm;
+        searchUsers(searchTerm);
+      }
     }, 300);
 
     return () => clearTimeout(timer);
