@@ -112,6 +112,11 @@ class ApiService {
     return response.data.data; // Extract data from ApiResponse wrapper
   }
 
+  async getVeterinarians(): Promise<User[]> {
+    const response = await this.api.get('/auth/users/search', { params: { role: 'veterinarian' } });
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
   // Generic methods for other API calls
   async get<T = unknown>(url: string, params?: Record<string, unknown>): Promise<T> {
     const response: AxiosResponse<T> = await this.api.get(url, { params });

@@ -22,7 +22,7 @@ import {
   VerifySecurityQuestionDto 
 } from '../dto/auth.dto';
 import { ResponseUtil } from '@pet-vet/common';
-import { AuthResponse, ApiResponse } from '@pet-vet/types';
+import { AuthResponse, ApiResponse, UserRole } from '@pet-vet/types';
 import { User } from '../entities/user.entity';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerApiResponse, ApiBody } from '@nestjs/swagger';
 
@@ -162,20 +162,28 @@ export class AuthController {
   }
 
   /**
-   * Search users by email
+   * Search users by email and/or role
    * GET /users/search
    */
   @Get('users/search')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Search users by email' })
+  @ApiOperation({ summary: 'Search users by email and/or role' })
   @SwaggerApiResponse({ status: 200, description: 'Users retrieved successfully.' })
   @SwaggerApiResponse({ status: 404, description: 'No users found.' })
-  async searchUsersByEmail(@Query('email') email: string): Promise<ApiResponse<Partial<User>[]>> {
-    if (!email) {
-      throw new BadRequestException('Email query parameter is required');
+  async searchUsersByEmail(
+    @Query('email') email?: string,
+    @Query('role') role?: string
+  ): Promise<ApiResponse<Partial<User>[]>> {
+    // Validar que el rol sea válido si se proporciona
+    let userRole: UserRole | undefined;
+    if (role) {
+      if (!Object.values(UserRole).includes(role as UserRole)) {
+        throw new BadRequestException('Rol no válido. Roles disponibles: client, veterinarian, admin');
+      }
+      userRole = role as UserRole;
     }
 
-    const users = await this.authService.searchUsersByEmail(email);
-    return ResponseUtil.success(users, 'Users retrieved successfully');
+    const users = await this.authService.searchUsersByEmail(email, userRole);
+    return ResponseUtil.success(users, 'Usuarios obtenidos exitosamente');
   }
 }

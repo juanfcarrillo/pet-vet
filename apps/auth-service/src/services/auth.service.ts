@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '../entities/user.entity';
 import { CreateUserDto, LoginDto, ResetPasswordDto, VerifySecurityQuestionDto } from '../dto/auth.dto';
 import { PasswordUtil, ValidationUtil } from '@pet-vet/common';
-import { AuthResponse } from '@pet-vet/types';
+import { AuthResponse, UserRole } from '@pet-vet/types';
 
 @Injectable()
 export class AuthService {
@@ -228,19 +228,32 @@ export class AuthService {
   }
 
   /**
-   * Buscar usuarios por email
+   * Buscar usuarios por email y/o rol
    */
-  async searchUsersByEmail(email: string): Promise<Partial<User>[]> {
-    if (!email) {
-      throw new BadRequestException('Email is required');
+  async searchUsersByEmail(email?: string, role?: UserRole): Promise<Partial<User>[]> {
+    const whereConditions: any = {};
+
+    if (email) {
+      whereConditions.email = Like(`%${email}%`);
+    }
+
+    if (role) {
+      whereConditions.role = role;
+      whereConditions.isActive = true;
+    }
+
+    // Si no hay filtros, no devolver nada
+    if (!email && !role) {
+      throw new BadRequestException('Al menos email o role es requerido');
     }
 
     const users = await this.userRepository.find({
-      where: { email: Like(`%${email}%`) },
+      where: whereConditions,
+      order: { fullName: 'ASC' }
     });
 
     if (!users.length) {
-      throw new NotFoundException('No users found with the provided email');
+      throw new NotFoundException('No se encontraron usuarios con los criterios proporcionados');
     }
 
     return users.map(({ password, securityAnswer, ...user }) => user);

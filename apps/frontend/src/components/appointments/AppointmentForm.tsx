@@ -36,14 +36,24 @@ export const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, onCa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Mock veterinarians data - in real app, fetch from API
+  // Fetch veterinarians from API
   useEffect(() => {
-    const mockVets: VeterinarianOption[] = [
-      { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Dr. Ana García', specialization: 'Medicina General' },
-      { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Dr. Carlos López', specialization: 'Cirugía' },
-      { id: '550e8400-e29b-41d4-a716-446655440003', name: 'Dr. María Rodríguez', specialization: 'Dermatología' },
-    ];
-    setVeterinarians(mockVets);
+    const fetchVeterinarians = async () => {
+      try {
+        const vets = await apiService.getVeterinarians();
+        const veterinarianOptions: VeterinarianOption[] = vets.map(vet => ({
+          id: vet.id,
+          name: vet.fullName,
+          specialization: 'Veterinario' // Puedes agregar especialización al modelo User más adelante
+        }));
+        setVeterinarians(veterinarianOptions);
+      } catch (error) {
+        console.error('Error fetching veterinarians:', error);
+        setError('Error al cargar veterinarios');
+      }
+    };
+
+    fetchVeterinarians();
   }, []);
 
   const fetchAvailableSlots = useCallback(async () => {
