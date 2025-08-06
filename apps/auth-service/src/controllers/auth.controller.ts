@@ -161,6 +161,11 @@ export class AuthController {
     );
   }
 
+  @Get('/debug-sentry')
+  getError() {
+  throw new Error('Mi primer error en Sentry desde AuthController!');
+  }
+
   /**
    * Search users by email and/or role
    * GET /users/search
