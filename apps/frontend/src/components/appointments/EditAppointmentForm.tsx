@@ -34,7 +34,7 @@ export const EditAppointmentForm: React.FC<EditAppointmentFormProps> = ({
     isEmergency: appointment.isEmergency,
   });
 
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [_, setAvailableSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

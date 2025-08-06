@@ -45,15 +45,6 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
   useEffect(() => {
     // Emit WebSocket event to create a conversation
     const socket = getSocket();
-    socket.on('conversationCreated', (response: { success: boolean; error?: string }) => {
-      console.log('Conversation created:', response);
-      if (response.success) {
-        onChatCreated(response.conversation.otherParticipant);
-        onClose();
-      } else {
-        console.error('Error creating chat:', response.error);
-      }
-    });
 
     return () => {
       socket.off('conversationCreated');
