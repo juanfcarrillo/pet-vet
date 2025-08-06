@@ -258,4 +258,20 @@ export class AuthService {
 
     return users.map(({ password, securityAnswer, ...user }) => user);
   }
+
+  /**
+   * Obtener usuario por ID (para comunicación entre servicios)
+   */
+  async getUserById(userId: string): Promise<Partial<User>> {
+    const user = await this.userRepository.findOne({ 
+      where: { id: userId, isActive: true } 
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const { password, securityAnswer, ...userWithoutSensitiveData } = user;
+    return userWithoutSensitiveData;
+  }
 }
