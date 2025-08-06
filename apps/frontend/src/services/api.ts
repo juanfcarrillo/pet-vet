@@ -55,6 +55,24 @@ class ApiService {
       async (error) => {
         const originalRequest = error.config;
 
+        // Para errores de login, no intentar refresh token y pasar el error original
+        if (error.response?.status === 401 && originalRequest.url?.includes('/auth/login')) {
+          // Extraer el mensaje de error del servidor
+          const serverMessage = error.response?.data?.message || 'Credenciales incorrectas';
+          const customError = new Error(serverMessage);
+          customError.name = 'LoginError';
+          return Promise.reject(customError);
+        }
+
+        // Para errores de registro, no intentar refresh token y pasar el error original
+        if (originalRequest.url?.includes('/auth/register') && error.response?.status >= 400) {
+          // Extraer el mensaje de error del servidor
+          const serverMessage = error.response?.data?.message || 'Error en el registro';
+          const customError = new Error(serverMessage);
+          customError.name = 'RegisterError';
+          return Promise.reject(customError);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
@@ -65,14 +83,22 @@ class ApiService {
               localStorage.setItem('accessToken', response.data.accessToken);
               return this.api(originalRequest);
             }
-          } catch (error) {
+          } catch (refreshError) {
             // Refresh failed, logout user
-            console.error('Token refresh failed:', error);
+            console.error('Token refresh failed:', refreshError);
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
             window.location.href = '/login';
           }
+        }
+
+        // Para otros errores, extraer el mensaje del servidor si está disponible
+        if (error.response?.data?.message) {
+          const serverMessage = error.response.data.message;
+          const customError = new Error(serverMessage);
+          customError.name = error.response.data.error || 'ServerError';
+          return Promise.reject(customError);
         }
 
         return Promise.reject(error);
