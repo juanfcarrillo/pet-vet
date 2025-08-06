@@ -121,15 +121,44 @@ export class ChatService {
     const total = totalConversations.length;
 
     // Format conversations with additional info
-    const formattedConversations = conversations.map(conv => {
+    const formattedConversations = await Promise.all(conversations.map(async conv => {
       const isUserSender = conv.senderId === userId;
+      const otherUserId = isUserSender ? conv.recipientId : conv.senderId;
       
+      if (!otherUserId) {
+        return null;
+      }
+      
+      // Fetch real user data from auth service using the new user/{id} endpoint
+      let otherUserData: any = null;
+      try {
+        const response = await lastValueFrom(
+          this.httpService.get(`${process.env.AUTH_SERVICE_URL}/api/auth/users/${otherUserId}`)
+        );
+        
+        if (response.data && response.data.data) {
+          otherUserData = response.data.data;
+        }
+      } catch (error) {
+        console.error('Error fetching user data from auth-service:', error);
+      }
+      
+      // Use fallback data if auth service fails or user not found
+      if (!otherUserData) {
+        otherUserData = {
+          id: otherUserId,
+          fullName: isUserSender ? conv.recipientName : conv.senderName,
+          email: `usuario-${otherUserId.substring(0, 8)}@pet-vet.com`,
+          role: isUserSender ? 'unknown' : conv.senderRole || 'unknown'
+        };
+      }
+
       // Create the other participant object
       const otherParticipant = {
-        id: isUserSender ? conv.recipientId : conv.senderId,
-        fullName: isUserSender ? conv.recipientName : conv.senderName,
-        email: '', // We don't have email in chat messages, this would need to come from user service
-        role: isUserSender ? 'unknown' : conv.senderRole || 'unknown'
+        id: otherUserData?.id || otherUserId,
+        fullName: otherUserData?.fullName || (isUserSender ? conv.recipientName : conv.senderName),
+        email: otherUserData?.email || `usuario-${otherUserId.substring(0, 8)}@pet-vet.com`,
+        role: otherUserData?.role || (isUserSender ? 'unknown' : conv.senderRole || 'unknown')
       };
 
       return {
@@ -142,10 +171,10 @@ export class ChatService {
         participants: [otherParticipant], // Also provide participants array
         unreadCount: 0, // TODO: Calculate actual unread count per conversation
       };
-    });
+    }));
 
     return {
-      conversations: formattedConversations,
+      conversations: formattedConversations.filter(conv => conv !== null),
       total,
       page,
       limit,
