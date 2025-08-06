@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AppService } from './app.service';
 import { MicroserviceHttpService } from './services/microservice-http.service';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Gateway')
 @Controller()
@@ -9,6 +10,7 @@ export class AppController {
   constructor(
     private readonly appService: AppService,
     private readonly httpService: MicroserviceHttpService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Get()
@@ -111,7 +113,7 @@ export class AppController {
               'GET /chat/health - Service health check',
             ],
             websocket: {
-              url: 'ws://localhost:3003/chat',
+              url: `${this.configService.get<string>('WS_URL')}/chat` || 'ws://localhost:3003/chat',
               namespace: '/chat',
               note: 'For real-time messaging, use WebSocket connection',
             },

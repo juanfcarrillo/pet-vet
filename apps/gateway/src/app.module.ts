@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -25,6 +25,6 @@ import { ChatGatewayController } from './controllers/chat-gateway.controller';
     AppointmentsGatewayController,
     ChatGatewayController,
   ],
-  providers: [AppService, MicroserviceHttpService],
+  providers: [AppService, MicroserviceHttpService, ConfigService],
 })
 export class AppModule {}

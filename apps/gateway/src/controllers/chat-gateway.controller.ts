@@ -24,12 +24,16 @@ import {
 } from '@nestjs/swagger';
 import { Observable } from 'rxjs';
 import { MicroserviceHttpService } from '../services/microservice-http.service';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Chat Gateway')
 @Controller('chat')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class ChatGatewayController {
-  constructor(private readonly httpService: MicroserviceHttpService) {}
+  constructor(
+    private readonly httpService: MicroserviceHttpService, 
+    private readonly configService: ConfigService
+  ) {}
 
   /**
    * HU07 - Get conversation messages
@@ -317,7 +321,7 @@ export class ChatGatewayController {
     return {
       success: true,
       data: {
-        websocketUrl: 'ws://localhost:3003/chat',
+        websocketUrl: `${this.configService.get<string>('WS_URL')}/chat` || 'ws://localhost:3003/chat',
         namespace: '/chat',
         events: {
           client_to_server: [
