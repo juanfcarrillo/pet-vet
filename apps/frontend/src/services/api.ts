@@ -9,6 +9,16 @@ import type {
   AppointmentsResponse,
   ConfirmAppointmentData 
 } from '../types/appointment';
+import type {
+  ChatMessage,
+  CreateMessageData,
+  UpdateMessageData,
+  MessageFilters,
+  MessagesResponse,
+  ConversationFilters,
+  ConversationsResponse
+} from '../types/chat';
+
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -169,12 +179,49 @@ class ApiService {
   }
 
   // Chat endpoints (REST API)
-  async getChatHistory(conversationId: string) {
-    return this.get(`/chat/conversation/${conversationId}`);
+  async getConversationMessages(conversationId: string, filters?: MessageFilters): Promise<MessagesResponse> {
+    const response = await this.api.get(`/chat/conversations/${conversationId}/messages`, { params: filters });
+    return response.data.data; // Extract data from ApiResponse wrapper
   }
 
-  async getConversations() {
-    return this.get('/chat/conversations');
+  async getUserConversations(userId: string, filters?: ConversationFilters): Promise<ConversationsResponse> {
+    const response = await this.api.get(`/chat/users/${userId}/conversations`, { params: filters });
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async sendMessage(data: CreateMessageData): Promise<ChatMessage> {
+    const response = await this.api.post('/chat/messages', data);
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async editMessage(messageId: string, data: UpdateMessageData): Promise<ChatMessage> {
+    const response = await this.api.put(`/chat/messages/${messageId}`, data);
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async deleteMessage(messageId: string, senderId: string): Promise<void> {
+    await this.api.delete(`/chat/messages/${messageId}`, { params: { senderId } });
+  }
+
+  async updateMessageStatus(messageId: string, status: string): Promise<ChatMessage> {
+    const response = await this.api.put(`/chat/messages/${messageId}/status`, { status });
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async markConversationAsRead(conversationId: string, userId: string): Promise<void> {
+    await this.api.post(`/chat/conversations/${conversationId}/mark-read`, { userId });
+  }
+
+  async getUnreadMessageCount(userId: string): Promise<number> {
+    const response = await this.api.get(`/chat/users/${userId}/unread-count`);
+    return response.data.data; // Extract data from ApiResponse wrapper
+  }
+
+  async searchMessages(userId: string, searchTerm: string, limit?: number): Promise<ChatMessage[]> {
+    const response = await this.api.get(`/chat/users/${userId}/search`, { 
+      params: { q: searchTerm, limit } 
+    });
+    return response.data.data; // Extract data from ApiResponse wrapper
   }
 }
 

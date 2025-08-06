@@ -1,0 +1,448 @@
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { chatSocketService } from '../services/chatSocket';
+import { apiService } from '../services/api';
+import { useAuth } from './AuthContext';
+import { 
+  ChatMessage, 
+  Conversation, 
+  OnlineUser, 
+  TypingUser,
+  CreateMessageData,
+  MessageStatus
+} from '../types/chat';
+import { User } from '../types/user';
+import { ChatNotificationToast } from '../components/chat/ChatNotifications';
+
+interface ChatContextType {
+  // Connection state
+  isConnected: boolean;
+  
+  // Messages and conversations
+  conversations: Conversation[];
+  activeConversation: Conversation | null;
+  messages: ChatMessage[];
+  
+  // Online users and typing
+  onlineUsers: OnlineUser[];
+  typingUsers: TypingUser[];
+  
+  // Unread counts
+  totalUnreadCount: number;
+  
+  // Actions
+  sendMessage: (conversationId: string, content: string) => Promise<void>;
+  editMessage: (messageId: string, newContent: string) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
+  markMessageAsRead: (messageId: string) => Promise<void>;
+  markConversationAsRead: (conversationId: string) => Promise<void>;
+  
+  // Conversation management
+  setActiveConversation: (conversation: Conversation | null) => void;
+  loadConversations: () => Promise<void>;
+  loadMessages: (conversationId: string) => Promise<void>;
+  
+  // Typing indicators
+  startTyping: (conversationId: string) => void;
+  stopTyping: (conversationId: string) => void;
+  
+  // Connection management
+  connect: () => void;
+  disconnect: () => void;
+}
+
+const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+export const useChat = () => {
+  const context = useContext(ChatContext);
+  if (context === undefined) {
+    throw new Error('useChat must be used within a ChatProvider');
+  }
+  return context;
+};
+
+interface ChatProviderProps {
+  children: ReactNode;
+}
+
+export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
+  const { user } = useAuth();
+  
+  // State
+  const [isConnected, setIsConnected] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const [notificationToasts, setNotificationToasts] = useState<{
+    id: string;
+    message: ChatMessage;
+    senderName: string;
+  }[]>([]);
+
+  // Load conversations
+  const loadConversations = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const [conversationsResponse, unreadCountResponse] = await Promise.all([
+        apiService.getUserConversations({
+          page: 1,
+          limit: 50,
+          sortBy: 'updatedAt',
+          sortOrder: 'desc'
+        }),
+        apiService.getUnreadMessageCount()
+      ]);
+      
+      setConversations(conversationsResponse.data);
+      setTotalUnreadCount(unreadCountResponse.unreadCount);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  }, [user]);
+
+  // Load messages for a conversation
+  const loadMessages = useCallback(async (conversationId: string) => {
+    try {
+      const response = await apiService.getConversationMessages(conversationId, {
+        page: 1,
+        limit: 50,
+        sortBy: 'createdAt',
+        sortOrder: 'asc'
+      });
+      setMessages(response.data);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  }, []);
+
+  // Send message
+  const sendMessage = useCallback(async (conversationId: string, content: string) => {
+    if (!user) return;
+    
+    try {
+      const messageData: CreateMessageData = {
+        conversationId,
+        content: content.trim(),
+        type: 'text'
+      };
+
+      await apiService.sendMessage(messageData);
+      chatSocketService.sendMessage(messageData);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw error;
+    }
+  }, [user]);
+
+  // Edit message
+  const editMessage = useCallback(async (messageId: string, newContent: string) => {
+    try {
+      await apiService.editMessage(messageId, { content: newContent });
+      chatSocketService.editMessage(messageId, newContent);
+    } catch (error) {
+      console.error('Error editing message:', error);
+      throw error;
+    }
+  }, []);
+
+  // Delete message
+  const deleteMessage = useCallback(async (messageId: string) => {
+    try {
+      await apiService.deleteMessage(messageId);
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      throw error;
+    }
+  }, []);
+
+  // Mark message as read
+  const markMessageAsRead = useCallback(async (messageId: string) => {
+    if (!user) return;
+    
+    try {
+      await apiService.updateMessageStatus(messageId, { status: 'read' });
+      chatSocketService.markMessageAsRead(messageId);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+  }, [user]);
+
+  // Mark conversation as read
+  const markConversationAsRead = useCallback(async (conversationId: string) => {
+    try {
+      await apiService.markConversationAsRead(conversationId);
+      
+      // Update local state
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, unreadCount: 0 }
+          : conv
+      ));
+      
+      // Recalculate total unread count
+      const response = await apiService.getUnreadMessageCount();
+      setTotalUnreadCount(response.unreadCount);
+    } catch (error) {
+      console.error('Error marking conversation as read:', error);
+    }
+  }, []);
+
+  // Typing indicators
+  const startTyping = useCallback((conversationId: string) => {
+    chatSocketService.startTyping(conversationId);
+  }, []);
+
+  const stopTyping = useCallback((conversationId: string) => {
+    chatSocketService.stopTyping(conversationId);
+  }, []);
+
+  // Connection management
+  const connect = useCallback(() => {
+    if (!user) return;
+    chatSocketService.connect();
+  }, [user]);
+
+  const disconnect = useCallback(() => {
+    chatSocketService.disconnect();
+  }, []);
+
+  // Get sender name for notifications
+  const getSenderName = useCallback((senderId: string): string => {
+    // Find sender in conversations
+    for (const conv of conversations) {
+      const sender = conv.participants.find(p => p.id === senderId);
+      if (sender) {
+        return sender.firstName && sender.lastName 
+          ? `${sender.firstName} ${sender.lastName}`
+          : sender.email;
+      }
+    }
+    return 'Usuario desconocido';
+  }, [conversations]);
+
+  // Socket event handlers
+  useEffect(() => {
+    const handleConnect = () => {
+      setIsConnected(true);
+      console.log('Chat connected');
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+      console.log('Chat disconnected');
+    };
+
+    const handleNewMessage = (message: ChatMessage) => {
+      // Update messages if it's for the active conversation
+      if (activeConversation && message.conversationId === activeConversation.id) {
+        setMessages(prev => [...prev, message]);
+        
+        // Auto-mark as read if from other user
+        if (message.senderId !== user?.id) {
+          markMessageAsRead(message.id);
+        }
+      }
+
+      // Update conversations
+      setConversations(prev => prev.map(conv => {
+        if (conv.id === message.conversationId) {
+          const isFromCurrentUser = message.senderId === user?.id;
+          return {
+            ...conv,
+            lastMessage: message,
+            updatedAt: message.createdAt,
+            unreadCount: isFromCurrentUser ? conv.unreadCount : (conv.unreadCount || 0) + 1
+          };
+        }
+        return conv;
+      }));
+
+      // Update total unread count and show notification
+      if (message.senderId !== user?.id) {
+        setTotalUnreadCount(prev => prev + 1);
+        
+        // Show notification toast if not in active conversation
+        if (!activeConversation || message.conversationId !== activeConversation.id) {
+          const senderName = getSenderName(message.senderId);
+          const toastId = `${message.id}-${Date.now()}`;
+          
+          setNotificationToasts(prev => [...prev, {
+            id: toastId,
+            message,
+            senderName
+          }]);
+        }
+      }
+    };
+
+    const handleMessageEdited = (messageId: string, newContent: string) => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, content: newContent, editedAt: new Date().toISOString() }
+          : msg
+      ));
+    };
+
+    const handleMessageStatusUpdate = (messageId: string, status: MessageStatus) => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, status } : msg
+      ));
+    };
+
+    const handleUserTyping = (data: TypingUser) => {
+      if (data.userId !== user?.id) {
+        setTypingUsers(prev => {
+          const filtered = prev.filter(u => u.userId !== data.userId);
+          return [...filtered, data];
+        });
+      }
+    };
+
+    const handleUserStoppedTyping = (data: TypingUser) => {
+      setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
+    };
+
+    const handleUserOnline = (onlineUser: OnlineUser) => {
+      setOnlineUsers(prev => {
+        const filtered = prev.filter(u => u.userId !== onlineUser.userId);
+        return [...filtered, onlineUser];
+      });
+    };
+
+    const handleUserOffline = (userId: string) => {
+      setOnlineUsers(prev => prev.filter(u => u.userId !== userId));
+    };
+
+    const handleConversationRead = (conversationId: string) => {
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, unreadCount: 0 }
+          : conv
+      ));
+    };
+
+    // Subscribe to events
+    chatSocketService.on('connect', handleConnect);
+    chatSocketService.on('disconnect', handleDisconnect);
+    chatSocketService.on('newMessage', handleNewMessage);
+    chatSocketService.on('messageEdited', handleMessageEdited);
+    chatSocketService.on('messageStatusUpdate', handleMessageStatusUpdate);
+    chatSocketService.on('userTyping', handleUserTyping);
+    chatSocketService.on('userStoppedTyping', handleUserStoppedTyping);
+    chatSocketService.on('userOnline', handleUserOnline);
+    chatSocketService.on('userOffline', handleUserOffline);
+    chatSocketService.on('conversationRead', handleConversationRead);
+
+    return () => {
+      chatSocketService.off('connect', handleConnect);
+      chatSocketService.off('disconnect', handleDisconnect);
+      chatSocketService.off('newMessage', handleNewMessage);
+      chatSocketService.off('messageEdited', handleMessageEdited);
+      chatSocketService.off('messageStatusUpdate', handleMessageStatusUpdate);
+      chatSocketService.off('userTyping', handleUserTyping);
+      chatSocketService.off('userStoppedTyping', handleUserStoppedTyping);
+      chatSocketService.off('userOnline', handleUserOnline);
+      chatSocketService.off('userOffline', handleUserOffline);
+      chatSocketService.off('conversationRead', handleConversationRead);
+    };
+  }, [user, activeConversation, markMessageAsRead, getSenderName]);
+
+  // Auto-connect when user is available
+  useEffect(() => {
+    if (user && !isConnected) {
+      connect();
+    }
+    
+    return () => {
+      if (isConnected) {
+        disconnect();
+      }
+    };
+  }, [user, isConnected, connect, disconnect]);
+
+  // Load conversations when user is available
+  useEffect(() => {
+    if (user) {
+      loadConversations();
+    }
+  }, [user, loadConversations]);
+
+  // Load messages when active conversation changes
+  useEffect(() => {
+    if (activeConversation) {
+      loadMessages(activeConversation.id);
+      chatSocketService.joinRoom(activeConversation.id);
+      
+      // Mark as read when entering conversation
+      if (activeConversation.unreadCount && activeConversation.unreadCount > 0) {
+        markConversationAsRead(activeConversation.id);
+      }
+    }
+
+    return () => {
+      if (activeConversation) {
+        chatSocketService.leaveRoom(activeConversation.id);
+      }
+    };
+  }, [activeConversation, loadMessages, markConversationAsRead]);
+
+  // Remove notification toast
+  const removeNotificationToast = useCallback((toastId: string) => {
+    setNotificationToasts(prev => prev.filter(toast => toast.id !== toastId));
+  }, []);
+
+  // Handle notification toast click
+  const handleNotificationClick = useCallback((conversationId: string, toastId: string) => {
+    // Find and set active conversation
+    const conversation = conversations.find(conv => conv.id === conversationId);
+    if (conversation) {
+      setActiveConversation(conversation);
+    }
+    
+    // Remove the toast
+    removeNotificationToast(toastId);
+  }, [conversations, removeNotificationToast]);
+
+  const value: ChatContextType = {
+    isConnected,
+    conversations,
+    activeConversation,
+    messages,
+    onlineUsers,
+    typingUsers,
+    totalUnreadCount,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+    markMessageAsRead,
+    markConversationAsRead,
+    setActiveConversation,
+    loadConversations,
+    loadMessages,
+    startTyping,
+    stopTyping,
+    connect,
+    disconnect
+  };
+
+  return (
+    <ChatContext.Provider value={value}>
+      {children}
+      
+      {/* Notification Toasts */}
+      {notificationToasts.map((toast) => (
+        <ChatNotificationToast
+          key={toast.id}
+          message={toast.message}
+          senderName={toast.senderName}
+          onClose={() => removeNotificationToast(toast.id)}
+          onClick={() => handleNotificationClick(toast.message.conversationId, toast.id)}
+        />
+      ))}
+    </ChatContext.Provider>
+  );
+};

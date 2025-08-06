@@ -79,7 +79,10 @@ export class ChatService {
         'message.conversationId',
         'message.content',
         'message.createdAt',
+        'message.senderId',
         'message.senderName',
+        'message.senderRole',
+        'message.recipientId',
         'message.recipientName',
         'message.type',
         'message.status'
@@ -94,6 +97,8 @@ export class ChatService {
     // Get distinct conversations with their latest messages
     const conversations = await queryBuilder
       .distinctOn(['message.conversationId'])
+      .orderBy('message.conversationId', 'ASC') // Ensure this matches DISTINCT ON
+      .addOrderBy('message.createdAt', 'DESC') // Secondary ordering
       .skip((page - 1) * limit)
       .take(limit)
       .getMany();
@@ -112,14 +117,28 @@ export class ChatService {
     const total = totalConversations.length;
 
     // Format conversations with additional info
-    const formattedConversations = conversations.map(conv => ({
-      conversationId: conv.conversationId,
-      lastMessage: conv.content,
-      lastMessageDate: conv.createdAt,
-      type: conv.type,
-      status: conv.status,
-      otherParticipant: conv.senderId === userId ? conv.recipientName : conv.senderName,
-    }));
+    const formattedConversations = conversations.map(conv => {
+      const isUserSender = conv.senderId === userId;
+      
+      // Create the other participant object
+      const otherParticipant = {
+        id: isUserSender ? conv.recipientId : conv.senderId,
+        fullName: isUserSender ? conv.recipientName : conv.senderName,
+        email: '', // We don't have email in chat messages, this would need to come from user service
+        role: isUserSender ? 'unknown' : conv.senderRole || 'unknown'
+      };
+
+      return {
+        conversationId: conv.conversationId,
+        lastMessage: conv.content,
+        lastMessageDate: conv.createdAt,
+        type: conv.type,
+        status: conv.status,
+        otherParticipant: [otherParticipant], // Return as array as expected by frontend
+        participants: [otherParticipant], // Also provide participants array
+        unreadCount: 0, // TODO: Calculate actual unread count per conversation
+      };
+    });
 
     return {
       conversations: formattedConversations,

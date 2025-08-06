@@ -24,7 +24,7 @@ export const Dashboard: React.FC = () => {
       <Routes>
         <Route path="/" element={<DashboardHome />} />
         <Route path="/appointments/*" element={<AppointmentsView />} />
-        <Route path="/chat/*" element={<ChatView />} />
+        <Route path="/chat/*" element={<ChatView currentUser={user} />} />
         <Route path="/profile" element={<ProfileView />} />
       </Routes>
     </DashboardLayout>

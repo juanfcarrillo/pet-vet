@@ -70,8 +70,8 @@ export class ChatGatewayController {
     @Headers('authorization') authorization: string,
   ): Observable<any> {
     const headers = authorization ? { authorization } : {};
-    const params = { ...query, userId };
-    return this.httpService.get('chat', '/api/chat/conversations', params, headers);
+    const params = { ...query };
+    return this.httpService.get('chat', `/api/chat/users/${userId}/conversations`, params, headers);
   }
 
   /**
