@@ -44,10 +44,12 @@ export const ChatNotificationBadge: React.FC<ChatNotificationBadgeProps> = ({
         .catch(console.error);
     };
 
+    // @ts-ignore
     chatSocket.on('newMessage', handleNewMessage);
     chatSocket.on('conversationRead', handleConversationRead);
 
     return () => {
+      // @ts-ignore
       chatSocket.off('newMessage', handleNewMessage);
       chatSocket.off('conversationRead', handleConversationRead);
     };
