@@ -55,6 +55,33 @@ class ApiService {
       async (error) => {
         const originalRequest = error.config;
 
+        // Para errores de login, no intentar refresh token y pasar el error original
+        if (error.response?.status === 401 && originalRequest.url?.includes('/auth/login')) {
+          // Extraer el mensaje de error del servidor
+          const serverMessage = error.response?.data?.message || 'Credenciales incorrectas';
+          const customError = new Error(serverMessage);
+          customError.name = 'LoginError';
+          return Promise.reject(customError);
+        }
+
+        // Para errores de registro, no intentar refresh token y pasar el error original
+        if (originalRequest.url?.includes('/auth/register') && error.response?.status >= 400) {
+          // Extraer el mensaje de error del servidor
+          const serverMessage = error.response?.data?.message || 'Error en el registro';
+          const customError = new Error(serverMessage);
+          customError.name = 'RegisterError';
+          return Promise.reject(customError);
+        }
+
+        // Para errores de reset password, no intentar refresh token y pasar el error original
+        if (originalRequest.url?.includes('/auth/reset-password') && error.response?.status >= 400) {
+          // Extraer el mensaje de error del servidor
+          const serverMessage = error.response?.data?.message || 'Error al restablecer la contraseña';
+          const customError = new Error(serverMessage);
+          customError.name = 'ResetPasswordError';
+          return Promise.reject(customError);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
@@ -65,14 +92,22 @@ class ApiService {
               localStorage.setItem('accessToken', response.data.accessToken);
               return this.api(originalRequest);
             }
-          } catch (error) {
+          } catch (refreshError) {
             // Refresh failed, logout user
-            console.error('Token refresh failed:', error);
+            console.error('Token refresh failed:', refreshError);
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
             window.location.href = '/login';
           }
+        }
+
+        // Para otros errores, extraer el mensaje del servidor si está disponible
+        if (error.response?.data?.message) {
+          const serverMessage = error.response.data.message;
+          const customError = new Error(serverMessage);
+          customError.name = error.response.data.error || 'ServerError';
+          return Promise.reject(customError);
         }
 
         return Promise.reject(error);
@@ -210,7 +245,7 @@ class ApiService {
 
   async updateMessageStatus(messageId: string, status: string): Promise<ChatMessage> {
     const response = await this.api.put(`/chat/messages/${messageId}/status`, { status });
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 
   async markConversationAsRead(conversationId: string, userId: string): Promise<void> {
@@ -219,26 +254,26 @@ class ApiService {
 
   async getUnreadMessageCount(userId: string): Promise<number> {
     const response = await this.api.get(`/chat/users/${userId}/unread-count`);
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 
   async searchMessages(userId: string, searchTerm: string, limit?: number): Promise<ChatMessage[]> {
     const response = await this.api.get(`/chat/users/${userId}/search`, { 
       params: { q: searchTerm, limit } 
     });
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 
   async createConversation(data: { otherUserId: string }): Promise<{ conversation: Conversation; otherUser: User }> {
     const response = await this.api.post('/chat/conversations', data);
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 
   async searchUsersByEmail(email: string): Promise<User[]> {
     const response = await this.api.get('/auth/users/search', {
       params: { email },
     });
-    return response.data.data; // Extract data from ApiResponse wrapper
+    return response.data.data; 
   }
 }
 
