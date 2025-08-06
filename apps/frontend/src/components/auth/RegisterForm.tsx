@@ -48,8 +48,8 @@ export const RegisterForm: React.FC = () => {
       return false;
     }
     
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    if (formData.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
       return false;
     }
 
@@ -195,7 +195,7 @@ export const RegisterForm: React.FC = () => {
                   onChange={handleChange}
                   placeholder="••••••••"
                   required
-                  helperText="Mínimo 6 caracteres"
+                  helperText="Mínimo 8 caracteres"
                 />
                 <button
                   type="button"

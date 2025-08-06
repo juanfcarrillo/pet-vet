@@ -120,7 +120,7 @@ export const ForgotPasswordForm: React.FC = () => {
         onChange={(e) => setNewPassword(e.target.value)}
         placeholder="••••••••"
         required
-        helperText="Mínimo 6 caracteres"
+        helperText="Mínimo 8 caracteres"
       />
 
       <Input
