@@ -10,6 +10,7 @@ import {
   ValidationPipe,
   UsePipes,
   Query,
+  Param,
   BadRequestException
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -185,5 +186,20 @@ export class AuthController {
 
     const users = await this.authService.searchUsersByEmail(email, userRole);
     return ResponseUtil.success(users, 'Usuarios obtenidos exitosamente');
+  }
+
+  /**
+   * Get user by ID (for internal service communication)
+   * GET /users/:id
+   */
+  @Get('users/:id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  @SwaggerApiResponse({ status: 200, description: 'User retrieved successfully.' })
+  @SwaggerApiResponse({ status: 404, description: 'User not found.' })
+  async getUserById(
+    @Param('id') id: string
+  ): Promise<ApiResponse<Partial<User>>> {
+    const user = await this.authService.getUserById(id);
+    return ResponseUtil.success(user, 'Usuario obtenido exitosamente');
   }
 }

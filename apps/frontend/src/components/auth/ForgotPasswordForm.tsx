@@ -1,14 +1,22 @@
-
+// Importaciones de React y hooks
 import React, { useState } from 'react';
+// Importa el componente Link para navegación sin recargar la página
 import { Link } from 'react-router-dom';
+// Hook personalizado para acceder a las funciones de autenticación
 import { useAuth } from '../../contexts/AuthContext';
+// Componentes reutilizables de UI
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardHeader, CardContent } from '../ui/Card';
+// Íconos desde la librería Lucide
 import { Heart, ArrowLeft, CheckCircle } from 'lucide-react';
 
+
+// Componente funcional principal
 export const ForgotPasswordForm: React.FC = () => {
+   // Control del paso actual: email → security → success
   const [step, setStep] = useState<'email' | 'security' | 'success'>('email');
+  // Estados para cada input del formulario
   const [email, setEmail] = useState('');
   const [securityAnswer, setSecurityAnswer] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -16,8 +24,9 @@ export const ForgotPasswordForm: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Función de reseteo de contraseña desde el contexto de autenticación
   const { resetPassword } = useAuth();
-
+  // Primer paso: envía el email
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -36,8 +45,8 @@ export const ForgotPasswordForm: React.FC = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    if (newPassword.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
 
@@ -111,7 +120,7 @@ export const ForgotPasswordForm: React.FC = () => {
         onChange={(e) => setNewPassword(e.target.value)}
         placeholder="••••••••"
         required
-        helperText="Mínimo 6 caracteres"
+        helperText="Mínimo 8 caracteres"
       />
 
       <Input
