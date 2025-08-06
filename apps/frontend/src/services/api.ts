@@ -73,6 +73,15 @@ class ApiService {
           return Promise.reject(customError);
         }
 
+        // Para errores de reset password, no intentar refresh token y pasar el error original
+        if (originalRequest.url?.includes('/auth/reset-password') && error.response?.status >= 400) {
+          // Extraer el mensaje de error del servidor
+          const serverMessage = error.response?.data?.message || 'Error al restablecer la contraseña';
+          const customError = new Error(serverMessage);
+          customError.name = 'ResetPasswordError';
+          return Promise.reject(customError);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
