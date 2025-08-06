@@ -1,65 +1,4 @@
-version: '3.8'
-
 services:
-  # Base de datos para Auth Service
-  auth-db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: auth_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - auth_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Base de datos para Appointment Service
-  appointment-db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: appointment_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
-    volumes:
-      - appointment_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Base de datos para Chat Service
-  chat-db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: chat_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5434:5432"
-    volumes:
-      - chat_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis para caching y sessions
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-
   # PgAdmin para administración de BD
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -70,6 +9,8 @@ services:
       - "8080:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - default
 
   # NGINX como balanceador de carga
   nginx:
@@ -85,6 +26,44 @@ services:
     networks:
       - default
 
+  # Microservices
+  auth-service:
+    build:
+      target: AUTH
+    ports:
+      - "3001:3001"
+    networks:
+      - default
+
+  appointment-service:
+    build:
+      target: APPOINTMENTS
+    ports:
+      - "3002:3002"
+    networks:
+      - default
+
+  chat-service:
+    build:
+      target: CHAT
+    ports:
+      - "3003:3003"
+    networks:
+      - default
+
+  gateway:
+    build:
+      target: GATEWAY
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+      - appointment-service
+      - chat-service
+    networks:
+      - default
+    
+
 volumes:
   auth_data:
   appointment_data:
@@ -95,3 +74,4 @@ volumes:
 networks:
   default:
     name: petvet-network
+    driver: bridge

@@ -39,7 +39,12 @@
     "setup:auth": "cd apps/auth-service && npm install",
     "setup:appointments": "cd apps/appointment-service && npm install",
     "setup:chat": "cd apps/chat-service && npm install",
-    "setup:frontend": "cd apps/frontend && npm install"
+    "setup:frontend": "cd apps/frontend && npm install",
+    "start:gateway": "cd apps/gateway && npm run start:prod",
+    "start:auth": "cd apps/auth-service && npm run start:prod",
+    "start:appointments": "cd apps/appointment-service && npm run start:prod",
+    "start:chat": "cd apps/chat-service && npm run start:prod",
+    "start:frontend": "cd apps/frontend && npm run start:prod"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

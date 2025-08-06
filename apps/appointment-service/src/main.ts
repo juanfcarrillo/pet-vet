@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
+import Consul from 'consul';
 
 // Load environment variables
 dotenv.config();
@@ -44,8 +45,32 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.APPOINTMENT_SERVICE_PORT || 3002;
+  const port = parseInt(process.env.APPOINTMENT_SERVICE_PORT || '3002', 10);
   await app.listen(port);
+
+  // Register with Consul
+  const consul = new Consul({
+    host: process.env.CONSUL_HOST || 'localhost',
+    port: parseInt(process.env.CONSUL_PORT || '8500', 10),
+  });
+  const serviceId = `appointment-service-${port}`;
+  consul.agent.service.register({
+    id: serviceId,
+    name: 'appointment-service',
+    address: process.env.CONSUL_HOST ? 'appointment-service' : 'localhost',
+    port: port,
+    check: {
+      name: 'appointment-service-check',
+      http: `http://${process.env.CONSUL_HOST ? 'appointment-service' : 'localhost'}:${port}/api/appointments/health`,
+      interval: '10s',
+      timeout: '5s',
+    },
+  }).then(() => {
+    console.log('Successfully registered with Consul');
+  }).catch((err) => {
+    console.error('Failed to register with Consul:', err);
+  });
+
   console.log(`📅 Appointment Service running on port ${port}`);
   console.log(`📋 Health check available at: http://localhost:${port}/api/appointments/health`);
   console.log(`📋 Swagger docs available at: http://localhost:${port}/api/docs`);
