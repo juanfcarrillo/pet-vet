@@ -41,8 +41,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  // Load conversation messages
-  const loadMessages = useCallback(async () => {
+  // Load conversation messages (initial load only)
+  const loadInitialMessages = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await apiService.getConversationMessages(conversationId, {
@@ -52,7 +52,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       setMessages(response.messages);
       scrollToBottom();
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error('Error loading initial messages:', error);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +75,6 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       };
 
       // Send via API and WebSocket
-      await apiService.sendMessage(messageData);
       chatSocketService.sendMessage(messageData);
       
       setNewMessage('');
@@ -129,21 +128,21 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   const handleEditMessage = useCallback(async (messageId: string, newContent: string) => {
     try {
       await apiService.editMessage(messageId, { content: newContent });
-      chatSocketService.editMessage(messageId, newContent);
+      chatSocketService.editMessage(conversationId, messageId, newContent);
     } catch (error) {
       console.error('Error editing message:', error);
     }
-  }, []);
+  }, [conversationId]);
 
   // Handle message deletion
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     try {
-      await apiService.deleteMessage(messageId);
+      await apiService.deleteMessage(conversationId, messageId);
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
     } catch (error) {
       console.error('Error deleting message:', error);
     }
-  }, []);
+  }, [conversationId]);
 
   // Mark message as read when visible
   const handleMessageRead = useCallback(async (messageId: string) => {
@@ -163,7 +162,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       if (message.conversationId === conversationId) {
         setMessages(prev => [...prev, message]);
         setTimeout(scrollToBottom, 100);
-        
+
         // Mark as read if from other user
         if (message.senderId !== currentUser.id) {
           handleMessageRead(message.id);
@@ -231,16 +230,16 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     };
   }, [conversationId, currentUser.id, scrollToBottom, handleMessageRead]);
 
-  // Join room and load messages on mount
+  // Join room and load initial messages on mount
   useEffect(() => {
-    chatSocketService.joinRoom(conversationId);
-    loadMessages();
+    chatSocketService.joinRoom(conversationId, currentUser.id, otherUser.id);
+    loadInitialMessages();
 
     return () => {
-      chatSocketService.leaveRoom(conversationId);
+      chatSocketService.leaveRoom(conversationId, currentUser.id, otherUser.id);
       stopTyping();
     };
-  }, [conversationId, loadMessages, stopTyping]);
+  }, [conversationId, currentUser.id, otherUser.id, loadInitialMessages, stopTyping]);
 
   // Check if other user is online
   const isOtherUserOnline = onlineUsers.some(user => user.userId === otherUser.id);
@@ -255,7 +254,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
         <div className="flex items-center space-x-3">
           <div className="relative">
             <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-              {otherUser.firstName?.charAt(0) || otherUser.email.charAt(0)}
+              {otherUser.fullName?.charAt(0) || otherUser.email.charAt(0)}
             </div>
             {isOtherUserOnline && (
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
@@ -263,8 +262,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">
-              {otherUser.firstName && otherUser.lastName 
-                ? `${otherUser.firstName} ${otherUser.lastName}`
+              {otherUser.fullName 
+                ? `${otherUser.fullName}`
                 : otherUser.email
               }
             </h3>
@@ -275,7 +274,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
         </div>
         {onClose && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"

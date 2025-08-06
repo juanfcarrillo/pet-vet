@@ -1,13 +1,15 @@
-export enum MessageStatus {
-  SENT = 'sent',
-  DELIVERED = 'delivered',
-  READ = 'read'
-}
+export const MessageStatus = {
+  SENT: 'sent',
+  DELIVERED: 'delivered',
+  READ: 'read',
+} as const;
+export type MessageStatus = typeof MessageStatus[keyof typeof MessageStatus];
 
-export enum ConversationType {
-  PRIVATE = 'private',
-  GROUP = 'group'
-}
+export const ConversationType = {
+  PRIVATE: 'private',
+  GROUP: 'group',
+} as const;
+export type ConversationType = typeof ConversationType[keyof typeof ConversationType];
 
 export interface ChatMessage {
   id: string;
@@ -126,6 +128,7 @@ export interface TypingUser {
   userId: string;
   userName: string;
   isTyping: boolean;
+  conversationId: string; // Added conversationId to match usage in ChatRoom
 }
 
 // Frontend-specific types
