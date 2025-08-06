@@ -30,6 +30,7 @@
     "@pet-vet/common": "file:../../libs/common",
     "@pet-vet/database": "file:../../libs/database",
     "@pet-vet/types": "file:../../libs/types",
+    "@sentry/nestjs": "^10.2.0",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
