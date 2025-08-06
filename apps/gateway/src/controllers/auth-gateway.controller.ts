@@ -173,21 +173,23 @@ export class AuthGatewayController {
   }
 
   /**
-   * Search users by email
+   * Search users by email and/or role
    * GET /auth/users/search
    */
   @Get('users/search')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Search users by email' })
+  @ApiOperation({ summary: 'Search users by email and/or role' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
   @ApiResponse({ status: 404, description: 'No users found.' })
-  @ApiParam({ name: 'email', description: 'Email to search for', type: 'string' })
   searchUsersByEmail(
-    @Query('email') email: string,
-    @Headers('authorization') authorization: string,
+    @Query('email') email?: string,
+    @Query('role') role?: string,
+    @Headers('authorization') authorization?: string,
   ): Observable<any> {
     const headers = authorization ? { authorization } : {};
-    const params = { email };
+    const params: any = {};
+    if (email) params.email = email;
+    if (role) params.role = role;
     return this.httpService.get('auth', '/api/auth/users/search', params, headers);
   }
 }
