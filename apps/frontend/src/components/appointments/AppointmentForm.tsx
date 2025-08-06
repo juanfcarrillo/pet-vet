@@ -75,7 +75,7 @@ export const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, onCa
 
     try {
       // Combine date and time into ISO string
-      const appointmentDateTime = new Date(`${formData.appointmentDate}T${formData.appointmentTime}:00`);
+      const appointmentDateTime = new Date(formData.appointmentDate);
       
       const selectedVet = veterinarians.find(v => v.id === formData.veterinarianId);
       
