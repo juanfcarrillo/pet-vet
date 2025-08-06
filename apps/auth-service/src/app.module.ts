@@ -17,7 +17,7 @@ import { User } from './entities/user.entity';
       useFactory: async (configService: ConfigService) => ({
         type: 'postgres',
         host: configService.get<string>('DB_HOST', 'localhost'),
-        port: 5432, // Auth service usa el puerto base
+        port: 5432, // Auth service usa el puerto base de PostgreSQL
         username: configService.get<string>('DB_USERNAME', 'postgres'),
         password: configService.get<string>('DB_PASSWORD', 'postgres'),
         database: 'auth_db',
