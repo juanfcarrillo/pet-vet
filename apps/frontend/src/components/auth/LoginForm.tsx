@@ -1,4 +1,4 @@
-
+// Importación de hooks y componentes necesarios
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Eye, EyeOff, Heart } from 'lucide-react';
-
+// Componente de formulario de inicio de sesión
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +16,7 @@ export const LoginForm: React.FC = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
-
+  // Función que se ejecuta al enviar el formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
