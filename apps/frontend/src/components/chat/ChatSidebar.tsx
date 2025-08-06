@@ -51,7 +51,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         // Convert the participant object to a full User object
         const fullOtherUser: User = {
           id: otherUser.id,
-          email: otherUser.email || `${otherUser.id}@example.com`, // fallback email if not provided
+          email: otherUser.email || `usuario-${otherUser.id.substring(0, 8)}@pet-vet.com`,
           fullName: otherUser.fullName,
           role: otherUser.role === 'veterinarian' ? UserRole.VETERINARIAN : UserRole.CLIENT,
           isActive: true, // assume active
@@ -81,9 +81,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const filteredConversations = conversations.filter(conv => {
     if (!searchTerm) return true;
     const otherUser = conv.otherUser;
-    const fullName = otherUser.fullName || '';
+    const displayName = otherUser.fullName || `Usuario ${otherUser.id.substring(0, 8)}`;
     return (
-      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       otherUser.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       conv.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -251,7 +251,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             {filteredConversations.map((conversation) => {
               const isSelected = conversation.conversationId === selectedConversationId;
               const otherUser = conversation.otherUser;
-              const fullName = otherUser.fullName || otherUser.email;
+              const displayName = otherUser.fullName || `Usuario ${otherUser.id.substring(0, 8)}`;
 
               return (
                 <div
@@ -265,7 +265,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
                       <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {otherUser.fullName?.charAt(0) || otherUser.email.charAt(0)}
+                        {otherUser.fullName?.charAt(0) || 'U'}
                       </div>
                       {conversation.isOnline && (
                         <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
@@ -278,7 +278,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <p className={`text-sm font-medium truncate ${
                           conversation.unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'
                         }`}>
-                          {fullName}
+                          {displayName}
                         </p>
                         <div className="flex items-center space-x-2">
                           {conversation.lastMessage && (
